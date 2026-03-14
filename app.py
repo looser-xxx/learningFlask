@@ -11,8 +11,15 @@ def createApp():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     db.init_app(app)
-
     app.register_blueprint(mealBp)
+
+    @app.errorhandler(404)
+    def resourceNotFound(error):
+        return {"error": "The requested URL or resource was not found."}, 404
+
+    @app.errorhandler(500)
+    def internalServerError(error):
+        return {"error": "An unexpected error occurred on the server."}, 500
 
     return app
 
