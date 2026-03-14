@@ -1,76 +1,22 @@
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask
 
-app = Flask(__name__)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-db = SQLAlchemy(app)
+from models import db
+from routesMeals import mealBp
 
 
-class Meal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    foodName = db.Column(db.String(100), nullable=False)
-    calories = db.Column(db.Integer, nullable=False)
-    protein = db.Column(db.Integer, nullable=False)
+def createApp():
+    app = Flask(__name__)
 
-    def __repr__(self):
-        return f"<Meal {self.foodName}>"
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+    db.init_app(app)
 
-@app.route("/api/meals", methods=["GET", "POST"])
-def handleMeals():
-    if request.method == "POST":
-        data = request.get_json()
+    app.register_blueprint(mealBp)
 
-        newMeal = Meal(
-            foodName=data["foodName"],
-            calories=data["calories"],
-            protein=data["protein"],
-        )
-
-        db.session.add(newMeal)
-        db.session.commit()
-
-        return {"message": "Meal saved to database!", "id": newMeal.id}, 201
-
-    if request.method == "GET":
-        allMeals = Meal.query.all()
-
-        output = []
-        for meal in allMeals:
-            output.append(
-                {
-                    "id": meal.id,
-                    "foodName": meal.foodName,
-                    "calories": meal.calories,
-                    "protein": meal.protein,
-                }
-            )
-
-        return {"count": len(output), "meals": output}, 200
-
-
-@app.route("/api/meals/<int:id>", methods=["PUT", "DELETE"])
-def handleSingleMeal(id):
-    meal = Meal.query.get_or_404(id)
-
-    if request.method == "PUT":
-        data = request.get_json()
-
-        meal.foodName = data.get("foodName", meal.foodName)
-        meal.calories = data.get("calories", meal.calories)
-        meal.protein = data.get("protein", meal.protein)
-
-        db.session.commit()
-        return {"message": "Meal updated successfully!"}
-
-    if request.method == "DELETE":
-        db.session.delete(meal)
-        db.session.commit()
-        return {"message": f"Meal {id} has been deleted."}
+    return app
 
 
 if __name__ == "__main__":
+    app = createApp()
     app.run(debug=True)
